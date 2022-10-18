@@ -54,8 +54,7 @@ public class ExampleService extends Service {
     private final HashMap<String,Double> DistanceMap=new HashMap<>();
     private boolean isInside=false;
     private boolean isOutside=false;
-//    private boolean changedInside=false;
-    private String currentLandmark;
+    private int currentStreamVolume = 0;
 
 
     private final LocationCallback locationCallback = new LocationCallback() {
@@ -91,7 +90,8 @@ public class ExampleService extends Service {
                     boolean isPhoneInside = Objects.requireNonNull(DistanceMap.get(pair.getKey())) <= Objects.requireNonNull(MainActivity.storedLocations.get(pair.getKey()))[2];
                     MainActivity.result.add(isPhoneInside);
                     if(isPhoneInside) {
-                        currentLandmark = pair.getKey();
+                        //    private boolean changedInside=false;
+                        String currentLandmark = pair.getKey();
                         Notification notificationWithLocation = new Notification.Builder(ExampleService.this,"MyNotifications")
                                 .setContentTitle("You are currently inside "+ currentLandmark)
                                 .setContentText("Your Location is currently being used in the background")
@@ -104,11 +104,15 @@ public class ExampleService extends Service {
                 }
                 AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
                 if (MainActivity.result.contains(true)) {
+                    if(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) != 0){
+                        currentStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                    }
                     if (!isInside || MainActivity.changedInside) {
                         if (audioManager.getRingerMode() != MainActivity.ringerChoice) {
 //                            Toast.makeText(ExampleService.this, ""+MainActivity.ringerChoice, Toast.LENGTH_SHORT).show();
                             audioManager.setRingerMode(MainActivity.ringerChoice);
-//                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                            if(!isInside)
+                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
                             MainActivity.changedInside = false;
                         }
                         isInside = true;
@@ -119,6 +123,8 @@ public class ExampleService extends Service {
                     if(!isOutside) {
                         if (audioManager.getRingerMode() != AudioManager.RINGER_MODE_NORMAL) {
                             audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,currentStreamVolume,0);
+                            currentStreamVolume = 0;
                         }
                         isInside = false;
                         isOutside=true;
@@ -131,7 +137,7 @@ public class ExampleService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(3000);
@@ -142,7 +148,7 @@ public class ExampleService extends Service {
             notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(notificationChannel);
         }
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+        Intent notificationIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
         pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
         notification = new NotificationCompat.Builder(this,"MyNotifications")
                 .setContentText("Your Location is currently being used in the background")

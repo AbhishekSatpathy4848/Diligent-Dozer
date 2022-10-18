@@ -8,6 +8,7 @@ import android.Manifest;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Build;
@@ -28,13 +29,7 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-//    Notification notification;
-//    NotificationChannel notificationChannel;
-//    NotificationManager notificationManager;
-
     private Button startService,stopService;
-//    private TextView locationStatusTextView;
-    //    private Boolean serviceStarted = false;
     private NotificationManager notificationManager;
     private boolean userAssertsStopTracking = false;
     public static HashMap<String,Double[]> storedLocations=new HashMap<>();
@@ -42,11 +37,14 @@ public class MainActivity extends AppCompatActivity {
     public static boolean changedInside = false;
     public static int ringerChoice;
     public static ArrayList<Boolean> result = new ArrayList<>();
-
+    public static SharedPreferences sharedPreferences;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
+        sharedPreferences = getSharedPreferences("Preferences",MODE_PRIVATE);
+
 
 
 
@@ -179,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        Toast.makeText(this, "onStart", Toast.LENGTH_SHORT).show();
         if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
@@ -186,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
                         requestBackgroundPermission();
                 }
                 else{
-//                    if(ActivityCompat.checkSelfPermission(MainActivity.this,Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED)
                     if (!notificationManager.isNotificationPolicyAccessGranted()) {
                          requestDoNotDisturbPermission();
                     }
@@ -212,6 +210,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected  void onStop() {
+        super.onStop();
+        Toast.makeText(this, "onStop", Toast.LENGTH_SHORT).show();
+        
+    }
+    @Override
+    protected  void onDestroy() {
+        super.onDestroy();
+
+        Toast.makeText(this, "onDestroy", Toast.LENGTH_SHORT).show();
+    }
 //    private void askLocationPermission() {
 //        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 //            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -281,6 +291,8 @@ public class MainActivity extends AppCompatActivity {
    public void StopService(){
         if(numberSelected()>0 || userAssertsStopTracking)
             startService.setVisibility(View.VISIBLE);
+        if(numberSelected() == 0 && userAssertsStopTracking)
+            return;
         stopService.setVisibility(View.INVISIBLE);
        Toast.makeText(this, "Your Location is no longer being monitored", Toast.LENGTH_SHORT).show();
        Intent serviceIntent =new Intent(MainActivity.this,ExampleService.class);
