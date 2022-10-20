@@ -8,16 +8,14 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
-import android.util.Log;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.view.Display;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -25,7 +23,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
-import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
@@ -39,12 +36,11 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ExampleService extends Service {
+public class LocationService extends Service {
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationRequest locationRequest;
     private Notification notification;
@@ -54,7 +50,7 @@ public class ExampleService extends Service {
     private final HashMap<String,Double> DistanceMap=new HashMap<>();
     private boolean isInside=false;
     private boolean isOutside=false;
-    private int currentStreamVolume = 0;
+    private int currentStreamVolume;
 
 
     private final LocationCallback locationCallback = new LocationCallback() {
@@ -68,13 +64,13 @@ public class ExampleService extends Service {
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
 //                    Toast.makeText(ExampleService.this, "Latitude" + latitude + "Longitude" + longitude, Toast.LENGTH_SHORT).show();
-                    for (Map.Entry<String, Boolean> pair : MainActivity.choosenLocations.entrySet()) {
+                    for (Map.Entry<String, Boolean> pair : MainActivity.chosenLocations.entrySet()) {
 //                        Toast.makeText(MainActivity.this, String.valueOf(pair.getValue()), Toast.LENGTH_SHORT).show();
                         if (pair.getValue()) {
 //                            Toast.makeText(MainActivity.this, "True "+pair.getKey(), Toast.LENGTH_SHORT).show();
                             double Distance = distance(Objects.requireNonNull(MainActivity.storedLocations.get(pair.getKey()))[0], Objects.requireNonNull(MainActivity.storedLocations.get(pair.getKey()))[1], latitude, longitude);
 //                            d.setText(String.valueOf(Distance));
-                            Toast.makeText(ExampleService.this, "Distance from" + pair.getKey() + " " + Distance, Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(LocationService.this, "Distance from" + pair.getKey() + " " + Distance, Toast.LENGTH_SHORT).show();
 
 //                                                Toast.makeText(MainActivity.this, ""+Distance, Toast.LENGTH_SHORT).show();
 
@@ -92,7 +88,7 @@ public class ExampleService extends Service {
                     if(isPhoneInside) {
                         //    private boolean changedInside=false;
                         String currentLandmark = pair.getKey();
-                        Notification notificationWithLocation = new Notification.Builder(ExampleService.this,"MyNotifications")
+                        Notification notificationWithLocation = new Notification.Builder(LocationService.this,"MyNotifications")
                                 .setContentTitle("You are currently inside "+ currentLandmark)
                                 .setContentText("Your Location is currently being used in the background")
                                 .setSmallIcon(R.drawable.ic_launcher_background)
@@ -106,6 +102,7 @@ public class ExampleService extends Service {
                 if (MainActivity.result.contains(true)) {
                     if(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) != 0){
                         currentStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+//                        mediaVolumeChangedInside = true;
                     }
                     if (!isInside || MainActivity.changedInside) {
                         if (audioManager.getRingerMode() != MainActivity.ringerChoice) {
@@ -137,7 +134,14 @@ public class ExampleService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-//        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
+//        Toast.makeTex(t(this, "onCreate", Toast.LENGTH_SHORT).show();
+        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        if(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0){
+            loadFromStorage();
+        }
+        else {
+            currentStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        }
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(3000);
@@ -172,7 +176,8 @@ public class ExampleService extends Service {
 
     @Override
     public void onDestroy() {
-        Toast.makeText(this, "onDestroy", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "onDestroy", Toast.LENGTH_SHORT).show();
+        writeToStorage();
         stopLocationUpdates();
         super.onDestroy();
     }
@@ -223,7 +228,7 @@ public class ExampleService extends Service {
 //                    }
 //
 //                }
-                Toast.makeText(ExampleService.this, "Unable to Access Location Services", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LocationService.this, "Unable to Access Location Services", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -236,4 +241,14 @@ public class ExampleService extends Service {
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
+    private void loadFromStorage() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Preference", MODE_PRIVATE);
+        currentStreamVolume = sharedPreferences.getInt("currentStreamVolume", 0);
+    }
+
+    private void writeToStorage(){
+        SharedPreferences sharedPreferences = getSharedPreferences("Preference", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putInt("currentStreamVolume",currentStreamVolume).apply();
+    }
 }

@@ -17,10 +17,7 @@ public class LocationAdapter extends ArrayAdapter {
     ArrayList<String> locationNames;
     HashMap<String,Boolean> choosenLocations;
     Context context;
-    public LocationAdapter(@NonNull Context context,
-                           int resource,
-                           ArrayList<String> locationNames,
-                           HashMap<String,Boolean> choosenLocations) {
+    public LocationAdapter(@NonNull Context context, int resource, ArrayList<String> locationNames, HashMap<String,Boolean> choosenLocations) {
         super(context,resource,locationNames);
         this.locationNames= locationNames;
         this.context=context;
